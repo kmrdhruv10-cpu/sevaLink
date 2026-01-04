@@ -1,0 +1,1502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SevaLink — Unified App</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<style>
+  :root{
+    --accent: #00aaff;
+    --bg1: #0d0d0d;
+    --panel: #111;
+    --muted: #2b2b2b;
+  }
+  body{margin:0;font-family:Arial, sans-serif;background:linear-gradient(180deg,#071021,#0d1b2a);color:#fff;-webkit-font-smoothing:antialiased}
+  header.topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:rgba(0,0,0,0.35);border-bottom:1px solid rgba(255,255,255,0.04);z-index:500;}
+  .logo{font-weight:700;color:var(--accent);font-size:1.8rem;font-family:'Dancing Script',cursive;} 
+  
+  .controls{display:flex;gap:10px;align-items:center}
+  button.btn{background:var(--accent);color:#001;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700;transition:all 0.2s;}
+  button.btn:hover{opacity:0.9;transform:translateY(-1px);}
+  button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer;transition:all 0.2s;}
+  button.ghost:hover{background:rgba(255,255,255,0.05);}
+  select.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer;appearance:none;}
+  select.ghost option{color:#000;background:#fff;}
+  
+  #profile-display-area{display:flex;align-items:center;cursor:pointer;position:relative;padding:4px;border-radius:12px;transition:background 0.2s;}
+  #profile-display-area:hover{background:rgba(255,255,255,0.08);}
+  
+  #profile-avatar{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background-color:var(--accent);color:#000;font-size:1rem;transition:transform 0.2s,box-shadow 0.2s;}
+  #profile-avatar:hover{transform:scale(1.05);box-shadow:0 0 0 2px rgba(0,170,255,0.3);}
+
+  #user-name-text{color:#fff;font-size:0.9rem;margin-left:8px;font-weight:600;line-height:1.2;display:none;}
+  
+  #user-info-dropdown{position:absolute;top:45px;right:0;background:#1e293b;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.5);min-width:200px;max-width:max-content;opacity:0;visibility:hidden;transform:translateY(-10px);transition:opacity 0.2s,visibility 0.2s,transform 0.2s;z-index:1000;padding:12px;border:1px solid rgba(255,255,255,0.1);max-height:60vh;overflow-y:auto;}
+  #profile-display-area.open #user-info-dropdown{opacity:1;visibility:visible;transform:translateY(0);}
+  
+  #user-info-dropdown div#user-display{padding:0;margin-bottom:12px;}
+  #user-info-dropdown button{width:100%;background:#dc2626;color:#fff;font-weight:500;padding:8px;margin-bottom:6px;border:none;border-radius:6px;cursor:pointer;transition:opacity 0.2s;}
+  #user-info-dropdown button:hover{opacity:0.9;}
+  #user-info-dropdown #open-login{background:var(--accent);color:#000;margin-bottom:8px;}
+  
+  #open-login-old,#logout-btn-old{display:none !important;}
+  
+  main.container{padding:18px;max-width:1100px;margin:18px auto}
+  .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
+  .panel{background:var(--panel);border-radius:12px;padding:14px;box-shadow:0 6px 20px rgba(0,0,0,0.5);transition:transform 0.3s;}
+  .panel:hover{transform:translateY(-2px);}
+  .services{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;transition:opacity 0.3s ease;}
+  .service-card{background:#0f1720;border-radius:10px;padding:12px;cursor:pointer;border:1px solid rgba(255,255,255,0.03);transition:all 0.3s;}
+  .service-card:hover{background:#131c26;border-color:rgba(0,170,255,0.2);}
+  .service-card h4{margin:8px 0;color:#fff}
+  .service-head{display:flex;align-items:center;gap:10px}
+  .service-head i{font-size:1.6rem;display:inline-block;transition:transform .35s ease-in-out}
+  .service-card:hover .service-head i{transform:scale(1.12) rotate(-8deg)}
+  .worker-names{margin-top:8px;max-height:0;overflow:hidden;transition:max-height 0.5s ease-in-out;padding:0}
+  .worker-names.show{max-height:400px;padding-top:8px}
+
+  .worker-row-container{background:#111;padding:8px;border-radius:8px;margin-bottom:8px;transition:all 0.3s;}
+  .worker-row-container:hover{background:#1a1a1a;}
+  .worker-main-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+
+  .worker-details-inline{max-height:0;overflow:hidden;transition:max-height 0.3s ease-in-out,opacity 0.3s;opacity:0;padding-top:0;margin-top:0;border-top:1px solid transparent;padding-left:10px;padding-right:10px;}
+  .worker-details-inline.show{max-height:60px;opacity:1;padding-top:8px;margin-top:8px;border-top:1px solid rgba(255,255,255,0.1);}
+  .worker-details-inline a{color:#00ff99;text-decoration:none;font-weight:600;transition:color 0.2s;}
+  .worker-details-inline a:hover{color:#00cc77;}
+
+  .worker-row small{opacity:0.85}
+  .btn-small{background:var(--accent);border:none;padding:6px 8px;border-radius:8px;color:#001;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:0.85rem;transition:all 0.2s;}
+  .btn-small:hover{opacity:0.9;transform:translateY(-1px);}
+  .btn-whatsapp{background:#25D366;color:#fff;text-decoration:none;margin-left:8px;}
+  .btn-whatsapp:hover{background:#1da851;}
+  
+  .side-section{display:flex;flex-direction:column;gap:12px}
+  .profile-box{display:flex;flex-direction:column;gap:8px}
+  input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid var(--muted);background:var(--muted);color:#fff;transition:border-color 0.3s;font-size:14px;}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,170,255,0.3);}
+  label.small{font-size:0.9rem;color:#9fb3c8;margin-top:8px;display:block;}
+  .history-list{max-height:360px;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:10px}
+  .history-item{background:#0e1419;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);transition:all 0.3s;}
+  .history-item:hover{background:#121a22;}
+  .badge{display:inline-block;padding:5px 8px;border-radius:8px;font-weight:700;font-size:0.8rem;}
+  .badge.pending{background:#ffaa00;color:#001}
+  .badge.accepted{background:#00ff99;color:#001}
+  .badge.declined{background:#ff7070;color:#fff}
+  
+  .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);z-index:9999;visibility:hidden;opacity:0;transition:opacity .18s;}
+  .modal.show{visibility:visible;opacity:1}
+  .modal-box{width:360px;max-width:90vw;background:#0f1720;padding:18px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.5);}
+  
+  .notification{position:fixed;top:20px;right:20px;padding:12px 16px;border-radius:8px;background:#00ff99;color:#001;font-weight:600;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:none;animation:slideIn 0.3s ease;}
+  
+  @media(max-width:980px){
+    .grid{grid-template-columns:1fr;padding-bottom:80px}
+    .side-section{order:2}
+    #user-info-dropdown{left:auto;right:8px;min-width:180px;max-width:250px;}
+  }
+  @media(max-width:768px){
+    .worker-main-row{flex-direction:column;align-items:flex-start;}
+    .worker-main-row>div:last-child{width:100%;justify-content:space-between;display:flex;flex-wrap:wrap;}
+    .btn-whatsapp{margin-left:0;margin-top:4px;}
+  }
+  @media(max-width:640px){
+    #user-name-text{display:none;}
+    #profile-display-area{padding:0;}
+    .modal-box{width:90vw;margin:0 5vw;}
+  }
+
+  .toggle-pass-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#888;font-size:0.9rem;transition:color 0.2s;cursor:pointer;}
+  .toggle-pass-icon:hover{color:var(--accent);}
+  
+  .car{background:linear-gradient(45deg,#00aaff,#0055ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shine 2s infinite linear}
+  .lightning{background:linear-gradient(45deg,#ffdd00,#00aaff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:sparkle 1.5s infinite}
+  .spray{background:linear-gradient(45deg,#3ad59f,#0ea47a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:sp 2s infinite}
+  .box{background:linear-gradient(45deg,#8b4513,#c68642);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:rot 3s infinite}
+  .wrench{background:linear-gradient(45deg,#00ffff,#008888);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:pulse 2s infinite}
+  
+  @keyframes shine{0%,100%{filter:brightness(1)}50%{filter:brightness(1.4)}}
+  @keyframes sparkle{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+  @keyframes sp{0%{transform:translateY(0)}50%{transform:translateY(-3px)}100%{transform:translateY(0)}}
+  @keyframes rot{0%,100%{transform:rotate(0)}50%{transform:rotate(5deg)}}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+  @keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+  #splash-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#071021,#0d1b2a);z-index:10000;display:flex;flex-direction:column;justify-content:center;align-items:center;opacity:1;transition:opacity 0.8s ease-out,visibility 0.8s;visibility:visible;}
+  #splash-screen.hidden{opacity:0;visibility:hidden;}
+  .splash-logo{font-size:3rem;font-weight:700;color:var(--accent);font-family:'Dancing Script',cursive;animation:pulse-splash 1.5s infinite alternate;}
+  .splash-spinner{border:4px solid rgba(255,255,255,0.3);border-top:4px solid var(--accent);border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin-top:20px;}
+
+  @keyframes pulse-splash{from{transform:scale(1);text-shadow:0 0 5px rgba(0,170,255,0.5);}to{transform:scale(1.05);text-shadow:0 0 15px var(--accent);}}
+  @keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+  
+  #map-section{height:500px;width:100%;border-radius:12px;z-index:1;display:none;}
+  .map-popup .leaflet-popup-content-wrapper{background:#0f1720;color:#fff;border-radius:8px;}
+  .map-popup .leaflet-popup-tip{background:#0f1720;}
+  .view-toggle-btn{background:transparent;border:1px solid var(--accent);color:var(--accent);padding:6px 12px;border-radius:20px;cursor:pointer;font-size:0.9rem;margin-bottom:15px;display:inline-flex;align-items:center;gap:8px;transition:all 0.3s;}
+  .view-toggle-btn:hover,.view-toggle-btn.active{background:var(--accent);color:#000;}
+
+  .loading-text{text-align:center;padding:20px;color:#aaa;font-style:italic;}
+  .no-data{padding:20px;text-align:center;color:#888;font-style:italic;}
+  
+  .input-group{position:relative;margin-bottom:12px;}
+  .input-group label{display:block;margin-bottom:6px;}
+  .error-message{color:#ff6b6b;font-size:0.8rem;margin-top:4px;display:none;}
+  .success-message{color:#00ff99;font-size:0.8rem;margin-top:4px;display:none;}
+</style>
+</head>
+<body>
+
+<div id="splash-screen">
+  <div class="splash-logo">SevaLink</div>
+  <div class="splash-spinner"></div>
+</div>
+<header class="topbar">
+  <div class="logo">SevaLink</div>
+  <div class="controls">
+    
+    <select id="lang-switcher" class="ghost">
+      <option value="en">English</option>
+      <option value="hi">हिन्दी</option>
+      <option value="ru">Русский</option>
+    </select>
+    
+    <div id="profile-display-area">
+        <div id="profile-avatar">
+            <i class="fas fa-user"></i>
+        </div>
+        <span id="user-name-text">Login</span>
+
+        <div id="user-info-dropdown">
+            <div id="user-display">
+                <small>Not logged in</small>
+            </div>
+            <button id="open-login" class="btn" style="margin-bottom: 8px;">Edit Profile</button>
+            <button id="logout-btn" class="btn">Logout</button>
+        </div>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <div class="grid" id="main-grid">
+    <div>
+      <div class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h3 id="h3-services" style="margin:0">Services</h3>
+          <button id="toggleViewBtn" class="view-toggle-btn" onclick="toggleMapView()">
+              <i class="fas fa-map-marked-alt"></i> Show Map
+          </button>
+        </div>
+        
+        <br>
+
+        <div id="map-section"></div>
+        
+        <div id="servicesGrid" class="services" aria-live="polite"></div>
+      </div>
+
+      <div style="height:18px"></div>
+
+      <div class="panel" style="margin-top:12px">
+        <h3 id="h3-all-bookings">All Bookings (System)</h3>
+        <div id="allBookings" style="max-height:260px;overflow:auto;padding-top:8px"></div>
+      </div>
+    </div>
+
+    <aside>
+      <div class="side-section" id="side-section">
+        <div class="panel">
+          <h4 id="h4-your-bookings">Your Bookings</h4>
+          <div class="history-list" id="historyList"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+
+<div id="loginModal" class="modal" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 id="h3-login-signup" style="margin:0">Login / Signup</h3>
+      <button id="closeModal" class="ghost">×</button>
+    </div>
+    <p id="p-login-desc" class="small" style="opacity:0.9; margin:10px 0;">Enter your name, 10-digit mobile number, and address. Choose role. Providers need a password, service, rate & description.</p>
+
+    <div style="margin-top:10px">
+      <div id="g_id_onload"
+           data-client_id="YOUR_GOOGLE_CLIENT_ID"
+           data-context="signin"
+           data-ux_mode="popup"
+           data-callback="handleGoogleLogin"
+           data-auto_prompt="false"
+           style="margin-bottom: 20px;">
+      </div>
+      <div class="g_id_signin"
+           data-type="standard"
+           data-shape="rectangular"
+           data-theme="outline"
+           data-text="signin_with"
+           data-size="large"
+           data-logo_alignment="left"
+           style="width: 100%; margin-bottom: 20px;">
+      </div>
+      
+      <div class="input-group">
+        <label id="l-name" class="small">Name</label>
+        <input id="input-name" type="text" placeholder="Enter your name">
+        <div class="error-message" id="name-error"></div>
+      </div>
+      
+      <div class="input-group">
+        <label id="l-mobile" class="small">Mobile Number (10 digits)</label>
+        <input id="input-mobile" type="tel" pattern="\d{10}" title="10 digits mobile number" placeholder="9876543210">
+        <div class="error-message" id="mobile-error"></div>
+      </div>
+      
+      <div class="input-group">
+        <label id="l-address" class="small">Address (Must be precise)</label>
+        <input id="input-address" type="text" placeholder="Enter your full address">
+        <div class="error-message" id="address-error"></div>
+      </div>
+
+      <div class="input-group">
+        <label id="l-role" class="small">Role</label>
+        <select id="input-role">
+          <option id="opt-customer" value="customer">I need service (Customer)</option>
+          <option id="opt-provider" value="provider">I provide service (Provider)</option>
+        </select>
+      </div>
+
+      <div id="providerFields" style="display:none;margin-top:8px">
+        <div class="input-group">
+          <label id="l-provider-pass" class="small">Provider Password</label>
+          <div style="position: relative;">
+            <input id="input-provider-pass" type="password" style="padding-right: 40px;" placeholder="Enter provider password">
+            <i id="togglePass" class="fas fa-eye-slash toggle-pass-icon"></i>
+          </div>
+          <div class="error-message" id="password-error"></div>
+        </div>
+        
+        <div class="input-group">
+          <label id="l-service" class="small">Service (choose)</label>
+          <select id="input-service">
+            <option id="opt-select-service" value="">Select service</option>
+            <option>Cleaning</option>
+            <option>Electrician</option>
+            <option>Car Washing</option>
+            <option>Plumber</option>
+            <option>Room Shifting</option>
+          </select>
+          <div class="error-message" id="service-error"></div>
+        </div>
+        
+        <div class="input-group">
+          <label id="l-rate" class="small">Hourly rate (₹)</label>
+          <input id="input-rate" type="number" placeholder="e.g. 200" min="50" max="10000">
+          <div class="error-message" id="rate-error"></div>
+        </div>
+        
+        <div class="input-group">
+          <label id="l-provider-desc" class="small">Service Description (Bio)</label>
+          <textarea id="input-provider-desc-text" rows="3" style="resize:vertical" placeholder="Example: I have 5 years experience in car washing using eco-friendly products. I cover all areas of Delhi."></textarea>
+          <div class="error-message" id="desc-error"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button id="btnAuth" class="btn">Login / Signup</button>
+        <button id="btnGuest" class="ghost">Continue as Guest (Customer)</button>
+      </div>
+      <div id="authMsg" style="margin-top:8px;color:#ffd;"></div>
+    </div>
+  </div>
+</div>
+
+
+<div id="bookingModal" class="modal">
+  <div class="modal-box booking-modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 id="h3-confirm-booking" style="margin:0">Confirm Booking</h3>
+      <button id="closeBookingModal" class="ghost">×</button>
+    </div>
+    <div style="margin-top:10px">
+      <div id="bookingWorkerInfo"></div>
+      <div class="input-group">
+        <label id="l-booking-name" class="small">Your name</label>
+        <input id="bookingCustomerName" placeholder="Enter your name">
+        <div class="error-message" id="booking-name-error"></div>
+      </div>
+      <div class="input-group">
+        <label id="l-payment" class="small">Payment method</label>
+        <select id="bookingPayment">
+          <option>Cash</option>
+          <option>PhonePe</option>
+          <option>Google Pay</option>
+        </select>
+      </div>
+      <div style="margin-top:10px"><button id="confirmBookingBtn" class="btn">Confirm Booking</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="notify" class="notification"></div>
+
+<script>
+/* -------------------------
+   Splash Screen Logic
+   ------------------------- */
+document.addEventListener('DOMContentLoaded', () => {
+    const splashScreen = document.getElementById('splash-screen');
+    
+    setTimeout(() => {
+        if (splashScreen) {
+            splashScreen.classList.add('hidden');
+            
+            setTimeout(() => {
+                 splashScreen.remove();
+            }, 800);
+        }
+    }, 2000);
+});
+
+/* -------------------------
+   Language and Translations
+   ------------------------- */
+const SUPPORTED_LANGUAGES = [
+  { code: 'en', name: 'English' },
+  { code: 'hi', name: 'हिन्दी' },
+  { code: 'ru', name: 'Русский' },
+];
+
+const translations = {
+  en: {
+    login_signup: 'Login / Signup',
+    logout: 'Logout',
+    services: 'Services',
+    all_bookings_system: 'All Bookings (System)',
+    profile: 'Profile',
+    your_bookings: 'Your Bookings',
+    not_logged_in: 'Not logged in',
+    close: 'Close',
+    guest_customer: 'Continue as Guest (Customer)',
+    enter_name_and_role: 'Enter your name, 10-digit mobile number, and address. Choose role. Providers need a password, service, rate & description.', 
+    name: 'Name',
+    mobile: 'Mobile Number (10 digits)',
+    address: 'Address (Must be precise)',
+    role: 'Role',
+    customer_role: 'I need service (Customer)',
+    provider_role: 'I provide service (Provider)',
+    provider_pass: 'Provider Password',
+    provider_fields_desc: 'Provider: fill password, service, rate and description',
+    service: 'Service (choose)',
+    hourly_rate: 'Hourly rate (₹)',
+    rate_placeholder: 'e.g. 200',
+    select_service: 'Select service',
+    provider_desc: 'Service Description (Bio)',
+    provider_desc_placeholder: 'Example: I have 5 years experience in car washing using eco-friendly products. I cover all areas of Delhi.',
+    show_contact_btn: 'Contact', 
+    full_profile_btn: 'Full Profile', 
+    provider_details_title: 'Provider Details:', 
+    confirm_booking: 'Confirm Booking',
+    your_name: 'Your name',
+    payment_method: 'Payment method',
+    status_pending: 'Pending',
+    status_accepted: 'Accepted',
+    status_declined: 'Declined',
+    role_customer: 'Customer',
+    role_provider: 'Provider',
+    worker: 'Worker',
+    no_providers_yet: 'No providers yet',
+    book_btn: 'Book',
+    accept_btn: 'Accept',
+    decline_btn: 'Decline',
+    service_group_chat: 'Service Group Chat',
+    chat_now: 'Chat Now',
+    n_chat_message: (service) => `Hello, I saw your profile for ${service} service on SevaLink app. I'd like to book a service.`,
+    edit_profile: 'Edit Profile',
+    logged_in_customer: 'Logged in as customer',
+    no_provider_profile: 'No provider profile found — create from Login',
+    login_to_see_bookings: 'Login to see your bookings',
+    no_bookings_for_you: 'No bookings for you',
+    no_bookings_yet_system: 'No bookings yet',
+    login_text: 'Login',
+    customer_role_short: 'Cust',
+    provider_role_short: 'Prov',
+    n_login_guest: (name) => `Logged in as Guest (ID: ${name})`,
+    n_missing_fields: 'Please fill all required fields.',
+    n_provider_wrong_pass: 'Wrong password for existing provider.',
+    n_provider_logged_in: 'Provider logged in & profile updated.',
+    n_provider_created: 'Provider profile created & logged in.',
+    n_customer_logged_in: (name) => `Logged in as customer: ${name}`,
+    n_logged_out: 'Logged out',
+    n_profile_not_found: 'Profile not found',
+    n_worker_not_found: 'Worker not found',
+    n_login_to_book: 'Please log in as a customer (or guest) to book a service.',
+    n_no_worker_selected: 'No worker selected',
+    n_enter_name_booking: 'Please enter your name for the booking.',
+    n_booking_sent: 'Booking request sent — waiting for provider confirmation',
+    n_decision_saved: 'Decision saved and customer notified',
+    n_booking_accepted: (service, worker) => `✅ Booking for ${service} was Accepted by ${worker}`,
+    n_booking_declined: (service, worker) => `❌ Booking for ${service} was Declined by ${worker}`,
+  },
+  hi: {
+    login_signup: 'लॉगिन / साइनअप',
+    logout: 'लॉगआउट',
+    services: 'सेवाएं (Services)',
+    all_bookings_system: 'सभी बुकिंग्स (सिस्टम)',
+    profile: 'प्रोफ़ाइल (Profile)',
+    your_bookings: 'आपकी बुकिंग्स (Your Bookings)',
+    not_logged_in: 'लॉगिन नहीं किया गया है',
+    close: 'बंद करें',
+    guest_customer: 'अतिथि के रूप में जारी रखें (Customer)',
+    enter_name_and_role: 'अपना नाम, 10 अंकों का मोबाइल नंबर और पता दर्ज करें। भूमिका चुनें। प्रोवाइडर्स को पासवर्ड, सेवा, दर और विवरण की ज़रूरत होगी।', 
+    name: 'नाम (Name)',
+    mobile: 'मोबाइल नंबर (10 अंक)',
+    address: 'पता (Address)',
+    role: 'भूमिका (Role)',
+    customer_role: 'मुझे सेवा चाहिए (Customer)',
+    provider_role: 'मैं सेवा प्रदान करता हूँ (Provider)',
+    provider_pass: 'प्रोवाइडर पासवर्ड',
+    provider_fields_desc: 'प्रोवाइडर: पासवर्ड, सेवा, दर और विवरण भरें',
+    service: 'सेवा (चुनें)',
+    hourly_rate: 'प्रति घंटा दर (₹)',
+    rate_placeholder: 'उदा. 200',
+    select_service: 'सेवा चुनें',
+    provider_desc: 'सेवा विवरण (बायो)', 
+    provider_desc_placeholder: 'उदाहरण: मेरे पास इको-फ्रेंडली उत्पादों का उपयोग करके कार धोने का 5 साल का अनुभव है। मैं दिल्ली के सभी क्षेत्रों को कवर करता हूँ।', 
+    show_contact_btn: 'संपर्क करें', 
+    full_profile_btn: 'पूरी प्रोफ़ाइल', 
+    provider_details_title: 'प्रोवाइडर विवरण:', 
+    confirm_booking: 'बुकिंग की पुष्टि करें',
+    your_name: 'आपका नाम',
+    payment_method: 'भुगतान विधि',
+    status_pending: 'Pending',
+    status_accepted: 'स्वीकार (Accepted)',
+    status_declined: 'अस्वीकार (Declined)',
+    role_customer: 'कस्टमर',
+    role_provider: 'प्रोवाइडर',
+    worker: 'प्रोवाइडर',
+    no_providers_yet: 'कोई प्रोवाइडर अभी तक उपलब्ध नहीं है',
+    book_btn: 'बुक करें',
+    accept_btn: 'स्वीकार करें',
+    decline_btn: 'अस्वीकार करें',
+    service_group_chat: 'सेवा समूह चैट',
+    chat_now: 'अभी चैट करें',
+    n_chat_message: (service) => `नमस्ते, मैंने SevaLink ऐप पर आपकी ${service} सेवा प्रोफ़ाइल देखी है। मैं सेवा बुक करना चाहता/चाहती हूँ।`,
+    edit_profile: 'प्रोफ़ाइल संपादित करें',
+    logged_in_customer: 'कस्टमर के रूप में लॉगिन किया गया',
+    no_provider_profile: 'कोई प्रोवाइडर प्रोफ़ाइल नहीं मिली — लॉगिन से बनाएं',
+    login_to_see_bookings: 'अपनी बुकिंग देखने के लिए लॉगिन करें',
+    no_bookings_for_you: 'आपके लिए कोई बुकिंग नहीं है',
+    no_bookings_yet_system: 'अभी तक कोई बुकिंग नहीं',
+    login_text: 'लॉगिन',
+    customer_role_short: 'कस्टमर',
+    provider_role_short: 'प्रोवाइडर',
+    n_login_guest: (name) => `अतिथि के रूप में लॉगिन किया गया (ID: ${name})`,
+    n_missing_fields: 'कृपया सभी आवश्यक फ़ील्ड भरें।',
+    n_provider_wrong_pass: 'मौजूदा प्रोवाइडर के लिए गलत पासवर्ड',
+    n_provider_logged_in: 'प्रोवाइडर ने लॉगिन किया और प्रोफ़ाइल अपडेट की गई',
+    n_provider_created: 'प्रोवाइडर प्रोफ़ाइल बनाई गई और लॉगिन किया गया',
+    n_customer_logged_in: (name) => `कस्टमर के रूप में लॉगिन किया गया: ${name}`,
+    n_logged_out: 'लॉगआउट किया गया',
+    n_profile_not_found: 'प्रोफ़ाइल नहीं मिली',
+    n_worker_not_found: 'प्रोवाइडर नहीं मिला',
+    n_login_to_book: 'कृपया सेवा बुक करने के लिए कस्टमर (या अतिथि) के रूप में लॉगिन करें।',
+    n_no_worker_selected: 'कोई प्रोवाइडर नहीं चुना गया',
+    n_enter_name_booking: 'बुकिंग के लिए कृपया अपना नाम दर्ज करें।',
+    n_booking_sent: 'बुकिंग का अनुरोध भेजा गया — प्रोवाइडर की पुष्टि का इंतज़ार है',
+    n_decision_saved: 'निर्णय सहेजा गया और कस्टमर को सूचित किया गया',
+    n_booking_accepted: (service, worker) => `✅ आपकी ${service} बुकिंग को ${worker} द्वारा स्वीकार (Accepted) कर लिया गया है।`,
+    n_booking_declined: (service, worker) => `❌ आपकी ${service} बुकिंग को ${worker} द्वारा अस्वीकार (Declined) कर दिया गया है।`,
+  },
+  ru: {
+    login_signup: 'Вход / Регистрация',
+    logout: 'Выйти',
+    services: 'Услуги',
+    all_bookings_system: 'Все Заказы (Система)',
+    profile: 'Профиль',
+    your_bookings: 'Ваши Заказы',
+    not_logged_in: 'Не авторизован',
+    close: 'Закрыть',
+    guest_customer: 'Продолжить как Гость (Клиент)',
+    enter_name_and_role: 'Введите ваше имя, 10-значный номер телефона и адрес. Выберите роль. Исполнителям нужен пароль, услуга, ставка и описание.', 
+    name: 'Имя',
+    mobile: 'Номер телефона (10 цифр)',
+    address: 'Адрес',
+    role: 'Роль',
+    customer_role: 'Мне нужна услуга (Клиент)',
+    provider_role: 'Я предоставляю услугу (Исполнитель)',
+    provider_pass: 'Пароль Исполнителя',
+    provider_fields_desc: 'Исполнитель: заполните пароль, услугу, ставку и описание',
+    service: 'Услуга (выбрать)',
+    hourly_rate: 'Почасовая ставка (₹)',
+    rate_placeholder: 'напр. 200',
+    select_service: 'Выберите услугу',
+    provider_desc: 'Описание Услуги (Био)', 
+    provider_desc_placeholder: 'Пример: У меня 5-летний опыт мойки автомобилей с использованием экологически чистых средств. Я работаю по всем районам Дели.', 
+    show_contact_btn: 'Контакт', 
+    full_profile_btn: 'Полный профиль', 
+    provider_details_title: 'Данные Исполнителя:', 
+    confirm_booking: 'Подтвердить Заказ',
+    your_name: 'Ваше имя',
+    payment_method: 'Способ оплаты',
+    status_pending: 'В ожидании',
+    status_accepted: 'Принят',
+    status_declined: 'Отклонен',
+    role_customer: 'Клиент',
+    role_provider: 'Исполнитель',
+    worker: 'Исполнитель',
+    no_providers_yet: 'Пока нет исполнителей',
+    book_btn: 'Заказать',
+    accept_btn: 'Принять',
+    decline_btn: 'Отклонить',
+    service_group_chat: 'Групповой чат услуг',
+    chat_now: 'Чат сейчас',
+    n_chat_message: (service) => `Здравствуйте, я увидел ваш профиль для услуги ${service} в приложении SevaLink. Я хотел бы сделать заказ.`,
+    edit_profile: 'Редактировать профиль',
+    logged_in_customer: 'Вы вошли как клиент',
+    no_provider_profile: 'Профиль исполнителя не найден — создайте через Вход',
+    login_to_see_bookings: 'Войдите, чтобы увидеть ваши заказы',
+    no_bookings_for_you: 'У вас нет заказов',
+    no_bookings_yet_system: 'Заказов пока нет',
+    login_text: 'Войти',
+    customer_role_short: 'Клиент',
+    provider_role_short: 'Исполн',
+    n_login_guest: (name) => `Вошли как Гость (ID: ${name})`,
+    n_missing_fields: 'Пожалуйста, заполните все обязательные поля.',
+    n_provider_wrong_pass: 'Неверный пароль для существующего исполнителя',
+    n_provider_logged_in: 'Исполнитель вошел и обновил профиль',
+    n_provider_created: 'Профиль исполнителя создан и выполнен вход',
+    n_customer_logged_in: (name) => `Вошли как клиент: ${name}`,
+    n_logged_out: 'Вы вышли',
+    n_profile_not_found: 'Профиль не найден',
+    n_worker_not_found: 'Исполнитель не найден',
+    n_login_to_book: 'Пожалуйста, войдите как клиент (или гость), чтобы заказать услугу.',
+    n_no_worker_selected: 'Исполнитель не выбран',
+    n_enter_name_booking: 'Пожалуйста, введите ваше имя для заказа.',
+    n_booking_sent: 'Запрос на заказ отправлен — ожидание подтверждения исполнителя',
+    n_decision_saved: 'Решение сохранено, клиент уведомлен',
+    n_booking_accepted: (service, worker) => `✅ Заказ на ${service} был Принят исполнителем ${worker}`,
+    n_booking_declined: (service, worker) => `❌ Заказ на ${service} был Отклонен исполнителем ${worker}`,
+  },
+};
+
+let currentLang = localStorage.getItem('gharseva_lang') || 'en';
+
+function translate(key, ...args) {
+  let lang = translations[currentLang];
+  
+  if (!lang || !lang[key]) {
+      lang = translations['en'];
+  }
+
+  const str = lang && lang[key] ? lang[key] : translations['en'][key];
+  if (typeof str === 'function') {
+    return str(...args);
+  }
+  return str || key;
+}
+
+function updateUILanguage() {
+  document.getElementById('open-login').innerText = translate('edit_profile');
+  document.getElementById('logout-btn').innerText = translate('logout');
+  document.getElementById('h3-services').innerText = translate('services');
+  document.getElementById('h3-all-bookings').innerText = translate('all_bookings_system');
+  document.getElementById('h4-your-bookings').innerText = translate('your_bookings');
+  
+  document.getElementById('h3-login-signup').innerText = translate('login_signup');
+  document.getElementById('closeModal').innerText = translate('close');
+  document.getElementById('p-login-desc').innerText = translate('enter_name_and_role');
+  
+  document.getElementById('l-name').innerText = translate('name');
+  document.getElementById('input-name').placeholder = translate('name');
+  document.getElementById('l-mobile').innerText = translate('mobile'); 
+  document.getElementById('input-mobile').placeholder = translate('mobile');
+  document.getElementById('l-address').innerText = translate('address');
+  document.getElementById('input-address').placeholder = translate('address');
+  document.getElementById('l-provider-pass').innerText = translate('provider_pass'); 
+  document.getElementById('input-provider-pass').placeholder = translate('provider_pass');
+  document.getElementById('l-provider-desc').innerText = translate('provider_desc'); 
+  document.getElementById('input-provider-desc-text').placeholder = translate('provider_desc_placeholder'); 
+  document.getElementById('l-role').innerText = translate('role');
+  document.getElementById('opt-customer').innerText = translate('customer_role');
+  document.getElementById('opt-provider').innerText = translate('provider_role');
+  document.getElementById('l-service').innerText = translate('service');
+  document.getElementById('opt-select-service').innerText = translate('select_service');
+  document.getElementById('l-rate').innerText = translate('hourly_rate');
+  document.getElementById('input-rate').placeholder = translate('rate_placeholder');
+  document.getElementById('btnAuth').innerText = translate('login_signup');
+  document.getElementById('btnGuest').innerText = translate('guest_customer');
+  
+  document.getElementById('h3-confirm-booking').innerText = translate('confirm_booking');
+  document.getElementById('l-booking-name').innerText = translate('your_name');
+  document.getElementById('l-payment').innerText = translate('payment_method');
+  document.getElementById('confirmBookingBtn').innerText = translate('confirm_booking');
+  
+  updateUIAfterLogin();
+  renderServices();
+  renderAllBookings();
+}
+
+/* -------------------------
+   LocalStorage keys
+   ------------------------- */
+const WORKERS_KEY = 'gharseva_workers_unified_v3'; 
+const BOOKINGS_KEY = 'gharseva_bookings_unified_v3'; 
+const USER_KEY = 'gharseva_current_user_unified_v3'; 
+const NOTIF_KEY = 'gharseva_notifications_unified_v3'; 
+
+/* -------------------------
+   App state (load)
+   ------------------------- */
+let workers = JSON.parse(localStorage.getItem(WORKERS_KEY)) || [];
+let bookings = JSON.parse(localStorage.getItem(BOOKINGS_KEY)) || [];
+let currentUser = JSON.parse(localStorage.getItem(USER_KEY)) || null;
+let notifications = JSON.parse(localStorage.getItem(NOTIF_KEY)) || {};
+
+/* -------------------------
+   DOM refs
+   ------------------------- */
+const servicesGrid = document.getElementById('servicesGrid');
+const profileDisplayArea = document.getElementById('profile-display-area');
+const profileAvatar = document.getElementById('profile-avatar'); 
+const userNameText = document.getElementById('user-name-text');
+const avatarDropdown = document.getElementById('user-info-dropdown'); 
+const openLoginBtn = document.getElementById('open-login');
+const logoutBtn = document.getElementById('logout-btn');
+const langSwitcher = document.getElementById('lang-switcher');
+const loginModal = document.getElementById('loginModal');
+const closeModal = document.getElementById('closeModal');
+const btnAuth = document.getElementById('btnAuth');
+const btnGuest = document.getElementById('btnGuest');
+const inputRole = document.getElementById('input-role');
+const providerFields = document.getElementById('providerFields');
+const inputName = document.getElementById('input-name');
+const inputMobile = document.getElementById('input-mobile'); 
+const inputAddress = document.getElementById('input-address'); 
+const inputProviderPass = document.getElementById('input-provider-pass'); 
+const togglePassIcon = document.getElementById('togglePass'); 
+const inputProviderDesc = document.getElementById('input-provider-desc-text'); 
+const inputService = document.getElementById('input-service');
+const inputRate = document.getElementById('input-rate');
+const authMsg = document.getElementById('authMsg');
+const userDisplay = document.getElementById('user-display');
+const historyList = document.getElementById('historyList');
+const allBookings = document.getElementById('allBookings');
+
+const bookingModal = document.getElementById('bookingModal');
+const closeBookingModal = document.getElementById('closeBookingModal');
+const bookingWorkerInfo = document.getElementById('bookingWorkerInfo');
+const bookingCustomerName = document.getElementById('bookingCustomerName');
+const bookingPayment = document.getElementById('bookingPayment');
+const confirmBookingBtn = document.getElementById('confirmBookingBtn');
+
+const notifyBox = document.getElementById('notify');
+const sideSection = document.getElementById('side-section');
+
+/* -------------------------
+   Services categories
+   ------------------------- */
+const SERVICE_CATEGORIES = ['Cleaning','Electrician','Car Washing','Plumber','Room Shifting'];
+
+/* -------------------------
+   Utility functions
+   ------------------------- */
+function saveWorkers(){ localStorage.setItem(WORKERS_KEY, JSON.stringify(workers)); }
+function saveBookings(){ localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings)); }
+function saveUser(){ localStorage.setItem(USER_KEY, JSON.stringify(currentUser)); }
+function saveNotifs(){ localStorage.setItem(NOTIF_KEY, JSON.stringify(notifications)); }
+
+function showNotify(text, success=true){
+  notifyBox.style.display='block';
+  notifyBox.style.background = success ? '#00ff99' : '#ff6b6b';
+  notifyBox.style.color = success ? '#001' : '#fff';
+  notifyBox.innerText = text;
+  setTimeout(()=> notifyBox.style.display='none', 4000);
+}
+
+function validatePhoneNumber(phone) {
+  const cleaned = phone.replace(/\D/g, '');
+  if (cleaned.length !== 10) return false;
+  if (!/^[6-9]\d{9}$/.test(cleaned)) return false;
+  return cleaned;
+}
+
+function getServiceIcon(service){
+  switch(service.toLowerCase()){
+    case 'car washing': return `<i class="fas fa-car car"></i>`;
+    case 'cleaning': return `<i class="fas fa-spray-can spray"></i>`;
+    case 'electrician': return `<i class="fas fa-bolt lightning"></i>`;
+    case 'room shifting': return `<i class="fas fa-box box"></i>`;
+    case 'plumber': return `<i class="fas fa-wrench wrench"></i>`;
+    default: return `<i class="fas fa-user"></i>`;
+  }
+}
+
+/* -------------------------
+   Render services with workers inside each
+   ------------------------- */
+function renderServices(){
+  servicesGrid.innerHTML = '';
+  SERVICE_CATEGORIES.forEach(service=>{
+    const card = document.createElement('div');
+    card.className = 'service-card';
+    card.innerHTML = `
+      <div class="service-head">
+        ${getServiceIcon(service)}
+        <h4>${service}</h4>
+      </div>
+      <div class="worker-names" id="names-${service.replace(/\s+/g,'-')}"></div>
+    `;
+    
+    card.querySelector('.service-head').onclick = () => {
+      const namesDiv = document.getElementById(`names-${service.replace(/\s+/g,'-')}`);
+      const isShowing = namesDiv.classList.contains('show');
+      
+      document.querySelectorAll('.worker-names').forEach(d=>{ 
+        if(d!==namesDiv) d.classList.remove('show'); 
+      });
+
+      if (isShowing) {
+         namesDiv.classList.remove('show');
+         return;
+      }
+      
+      const filtered = workers.filter(w=>w.service === service);
+      let workerListHTML = '';
+
+      if (filtered.length) {
+          const encodedText = encodeURIComponent(
+            `${translate('chat_now')}! मैं SevaLink पर ${service} सेवा के लिए समूह चैट में शामिल होना चाहता/चाहती हूँ।`
+          );
+          const whatsappLink = `https://wa.me/?text=${encodedText}`;
+          
+          workerListHTML += `
+            <div style="background:#151b22; padding:10px; border-radius:8px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+                <small style="opacity:0.9;">${translate('service_group_chat')}</small>
+                <a href="${whatsappLink}" target="_blank" class="btn-small btn-whatsapp">
+                    <i class="fab fa-whatsapp"></i> ${translate('chat_now')}
+                </a>
+            </div>
+          `;
+          
+          workerListHTML += filtered.map(w=>
+            `<div class="worker-row-container">
+              <div class="worker-main-row">
+                <div>
+                  <strong>${w.name}</strong><br>
+                  <small>₹${w.rate}/hr</small>
+                </div>
+                <div style="display:flex; gap: 8px; flex-wrap:wrap;">
+                  <button class="btn-small" data-mobile="${w.mobile}" data-action="toggle-contact">
+                    ${translate('show_contact_btn')}
+                  </button>
+                  <a href="https://wa.me/91${w.mobile}?text=${encodeURIComponent(translate('n_chat_message', w.service))}" 
+                     target="_blank" 
+                     class="btn-small btn-whatsapp">
+                      <i class="fab fa-whatsapp"></i> ${translate('chat_now')}
+                  </a>
+                  <button class="btn-small" data-worker="${w.name}" data-action="full-profile">
+                    ${translate('full_profile_btn')}
+                  </button>
+                  <button class="btn-small" data-worker="${w.name}" data-action="book">${translate('book_btn')}</button>
+                </div>
+              </div>
+              <div class="worker-details-inline" id="worker-details-${w.mobile}">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <small style="color:#9fb3c8;">${translate('mobile')}</small>
+                      <a href="tel:${w.mobile}" title="Call ${w.name}">${w.mobile}</a>
+                  </div>
+              </div>
+            </div>`).join('');
+      } else {
+          workerListHTML = `<div style="opacity:0.8;padding:6px">${translate('no_providers_yet')}</div>`;
+      }
+
+      namesDiv.innerHTML = workerListHTML;
+      namesDiv.classList.add('show');
+      
+      namesDiv.querySelectorAll('button[data-action="book"]').forEach(btn=>{
+        btn.onclick = (e) => openBookingModal(e.target.dataset.worker);
+      });
+      
+      namesDiv.querySelectorAll('button[data-action="toggle-contact"]').forEach(btn=>{
+        btn.onclick = (e) => toggleWorkerDetailsInline(e.currentTarget.dataset.mobile);
+      });
+      
+      namesDiv.querySelectorAll('button[data-action="full-profile"]').forEach(btn=>{
+        btn.onclick = (e) => showWorkerDetails(e.target.dataset.worker);
+      });
+    };
+    servicesGrid.appendChild(card);
+  });
+  
+  if (isMapView) {
+      refreshMapMarkers();
+  }
+}
+
+let currentlyExpandedWorker = null; 
+
+function toggleWorkerDetailsInline(mobile) {
+    const detailsRow = document.getElementById(`worker-details-${mobile}`);
+    if (!detailsRow) {
+        showNotify(translate('n_worker_not_found'), false);
+        return;
+    }
+
+    const isShowing = detailsRow.classList.contains('show');
+
+    if (currentlyExpandedWorker && currentlyExpandedWorker !== detailsRow) {
+        currentlyExpandedWorker.classList.remove('show');
+    }
+    
+    if (isShowing) {
+        detailsRow.classList.remove('show');
+        currentlyExpandedWorker = null;
+    } else {
+        detailsRow.classList.add('show');
+        currentlyExpandedWorker = detailsRow;
+    }
+}
+
+function showWorkerDetails(workerName) {
+    const w = workers.find(x => x.name === workerName);
+    if (!w) { showNotify(translate('n_worker_not_found'), false); return; }
+
+    const existingModal = document.getElementById('tempDetailModal');
+    if (existingModal) existingModal.remove();
+
+    const detailModal = document.createElement('div');
+    detailModal.className = 'modal show';
+    detailModal.id = 'tempDetailModal';
+    detailModal.innerHTML = `
+        <div class="modal-box" style="width: 380px;">
+            <div style="display:flex;justify-content:space-between;align-items:center; border-bottom:1px solid var(--muted); padding-bottom:10px; margin-bottom:10px;">
+                <h4 style="margin:0; color:var(--accent);">${translate('provider_details_title')} ${w.name}</h4>
+                <button class="ghost" onclick="document.getElementById('tempDetailModal').remove()">×</button>
+            </div>
+            <div style="font-size:0.95rem; line-height:1.4;">
+                <p style="margin-bottom:8px;"><strong>${translate('service')}:</strong> ${w.service} (${w.rate}₹/hr)</p>
+                <p style="margin-bottom:8px;"><strong>${translate('address')}:</strong> ${w.address}</p>
+                <p style="margin-top:12px; font-weight:700;">${translate('provider_desc')}:</p>
+                <p style="margin-top:4px; font-style: italic; opacity: 0.9; white-space: pre-wrap;">${w.description}</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(detailModal);
+    
+    setTimeout(() => {
+      detailModal.addEventListener('click', e => {
+        if(e.target === detailModal) {
+            detailModal.remove();
+        }
+      });
+    }, 100);
+}
+
+/* -------------------------
+   Language Switcher Event
+   ------------------------- */
+langSwitcher.onchange = (e) => {
+  currentLang = e.target.value;
+  localStorage.setItem('gharseva_lang', currentLang);
+  updateUILanguage();
+};
+
+function populateLanguageSwitcher() {
+  langSwitcher.innerHTML = SUPPORTED_LANGUAGES.map(lang =>
+    `<option value="${lang.code}">${lang.name} (${lang.code})</option>`
+  ).join('');
+  langSwitcher.value = currentLang;
+}
+
+/* -------------------------
+   Booking modal logic
+   ------------------------- */
+let currentBookingTarget = null;
+function openBookingModal(workerName){
+  if (!currentUser || currentUser.role === 'provider') {
+      showNotify(translate('n_login_to_book'), false);
+      return;
+  }
+  const w = workers.find(x=>x.name === workerName);
+  if(!w){ showNotify(translate('n_worker_not_found'), false); return; }
+  currentBookingTarget = w;
+  bookingWorkerInfo.innerHTML = `<strong>${w.name}</strong> — ${w.service} — ₹${w.rate}/hr`;
+  bookingCustomerName.value = (currentUser && currentUser.role==='customer') ? currentUser.name : '';
+  bookingPayment.value = 'Cash';
+  bookingModal.classList.add('show');
+}
+closeBookingModal.onclick = ()=> bookingModal.classList.remove('show');
+
+confirmBookingBtn.onclick = ()=>{
+  const customerName = (bookingCustomerName.value || 'Guest').trim();
+  const payment = bookingPayment.value;
+  if(!currentBookingTarget){ showNotify(translate('n_no_worker_selected'), false); bookingModal.classList.remove('show'); return; }
+  if(!customerName){ showNotify(translate('n_enter_name_booking'), false); return; }
+
+  const now = new Date();
+  const b = {
+    id: Date.now(),
+    worker: currentBookingTarget.name,
+    service: currentBookingTarget.service,
+    customer: customerName,
+    customerMobile: currentUser ? currentUser.mobile : 'N/A', 
+    customerAddress: currentUser ? currentUser.address : 'N/A', 
+    rate: currentBookingTarget.rate,
+    date: now.toLocaleDateString(),
+    time: now.toLocaleTimeString(),
+    status: translations.en.status_pending,
+    payment
+  };
+  bookings.push(b);
+  saveBookings();
+  renderAllBookings();
+  renderHistoryForUser();
+  bookingModal.classList.remove('show');
+  showNotify(translate('n_booking_sent'), true);
+  currentBookingTarget = null;
+};
+
+/* -------------------------
+   Toggle Password Visibility Logic
+   ------------------------- */
+if (togglePassIcon) {
+    togglePassIcon.onclick = () => {
+        if (inputProviderPass.type === 'password') {
+            inputProviderPass.type = 'text';
+            togglePassIcon.classList.remove('fa-eye-slash');
+            togglePassIcon.classList.add('fa-eye');
+        } else {
+            inputProviderPass.type = 'password';
+            togglePassIcon.classList.remove('fa-eye');
+            togglePassIcon.classList.add('fa-eye-slash');
+        }
+    };
+}
+
+/* -------------------------
+   Google Login Handler
+   ------------------------- */
+function handleGoogleLogin(response) {
+  const credential = JSON.parse(atob(response.credential.split('.')[1]));
+  
+  const googleId = credential.sub;
+  const name = credential.name || 'Google User';
+  const email = credential.email;
+  const mobile = googleId.slice(-10); 
+  const address = 'Google Registered'; 
+  
+  let existingProvider = workers.find(w => w.mobile === mobile);
+  
+  if (existingProvider) {
+    currentUser = { 
+        name: existingProvider.name, 
+        mobile: existingProvider.mobile, 
+        address: existingProvider.address, 
+        role: 'provider',
+        googleId: googleId 
+    };
+    saveUser();
+    loginModal.classList.remove('show');
+    updateUIAfterLogin();
+    showNotify(translate('n_provider_logged_in'), true);
+    return;
+  }
+
+  currentUser = { 
+      name, 
+      mobile,
+      address, 
+      role: 'customer',
+      email,
+      googleId: googleId 
+  };
+  saveUser();
+  loginModal.classList.remove('show');
+  updateUIAfterLogin();
+  showNotify(translate('n_customer_logged_in', name), true);
+}
+
+/* -------------------------
+   Login / Signup logic
+   ------------------------- */
+function openLoginModalHandler(){
+  profileDisplayArea.classList.remove('open');
+  loginModal.classList.add('show');
+  authMsg.innerText = '';
+  
+  if(currentUser){ 
+    inputName.value = currentUser.name; 
+    inputMobile.value = currentUser.mobile || ''; 
+    inputAddress.value = currentUser.address || ''; 
+    inputRole.value = currentUser.role; 
+    inputProviderPass.value=''; 
+    
+    const w = workers.find(x=>x.mobile === currentUser.mobile); 
+    if(w) { 
+      inputService.value = w.service;
+      inputRate.value = w.rate;
+      inputProviderPass.value = w.password || '';
+      inputProviderDesc.value = w.description || ''; 
+    }
+    toggleProviderFields(); 
+  } else {
+    inputName.value = '';
+    inputMobile.value = '';
+    inputAddress.value = '';
+    inputProviderPass.value = '';
+    inputProviderDesc.value = ''; 
+    inputRole.value = 'customer';
+    inputService.value = '';
+    inputRate.value = '';
+    toggleProviderFields();
+  }
+}
+openLoginBtn.onclick = openLoginModalHandler;
+
+closeModal.onclick = ()=> loginModal.classList.remove('show');
+
+inputRole.onchange = toggleProviderFields;
+function toggleProviderFields(){
+  if(inputRole.value === 'provider'){ providerFields.style.display = 'block'; }
+  else { providerFields.style.display = 'none'; }
+}
+
+btnGuest.onclick = ()=>{
+  const name = 'Guest-'+ Math.floor(Math.random() * 1000); 
+  const mobile = '0000000000';
+  const address = 'Guest Location';
+  currentUser = { name, mobile, address, role: 'customer' };
+  saveUser();
+  loginModal.classList.remove('show');
+  updateUIAfterLogin();
+  showNotify(translate('n_login_guest', name), true);
+};
+
+btnAuth.onclick = ()=>{
+  const name = inputName.value.trim();
+  const mobile = inputMobile.value.trim();
+  const address = inputAddress.value.trim();
+  const role = inputRole.value;
+  
+  if(!name || !mobile || !address){ 
+    authMsg.innerText = translate('n_missing_fields'); 
+    return; 
+  }
+
+  const validMobile = validatePhoneNumber(mobile);
+  if(!validMobile){
+      authMsg.innerText = 'Mobile number must be exactly 10 digits and start with 6-9.';
+      return;
+  }
+  
+  if(role === 'provider'){
+    const pass = inputProviderPass.value;
+    const service = inputService.value;
+    const rate = parseInt(inputRate.value,10) || 0;
+    const description = inputProviderDesc.value.trim(); 
+    
+    if(!pass || !service || rate <= 0 || !description){ 
+      authMsg.innerText = translate('n_missing_fields'); 
+      return; 
+    }
+    
+    let existing = workers.find(w=>w.mobile === mobile);
+    if(existing){
+      if(existing.password !== pass){ authMsg.innerText = translate('n_provider_wrong_pass'); return; }
+      
+      existing.name = name;
+      existing.service = service; 
+      existing.rate = rate; 
+      existing.address = address; 
+      existing.description = description; 
+      saveWorkers();
+      
+      currentUser = { 
+          name: existing.name, 
+          mobile: existing.mobile, 
+          address: existing.address, 
+          role: 'provider', 
+          googleId: existing.googleId || (currentUser ? currentUser.googleId : undefined)
+      };
+      saveUser();
+      loginModal.classList.remove('show');
+      updateUIAfterLogin();
+      showNotify(translate('n_provider_logged_in'), true);
+      return;
+    } else {
+      const w = { name, mobile, password: pass, service, rate, address, description }; 
+      workers.push(w);
+      saveWorkers();
+      currentUser = { name, mobile, address, role: 'provider' };
+      saveUser();
+      loginModal.classList.remove('show');
+      updateUIAfterLogin();
+      showNotify(translate('n_provider_created'), true);
+      return;
+    }
+  } else {
+    currentUser = { name, mobile, address, role: 'customer' };
+    saveUser();
+    updateUIAfterLogin();
+    loginModal.classList.remove('show');
+    showNotify(translate('n_customer_logged_in', name), true);
+  }
+};
+
+/* -------------------------
+   Logout
+   ------------------------- */
+logoutBtn.onclick = ()=>{
+  currentUser = null;
+  localStorage.removeItem(USER_KEY);
+  updateUIAfterLogin();
+  showNotify(translate('n_logged_out'), true);
+  profileDisplayArea.classList.remove('open');
+};
+
+/* -------------------------
+   Profile Avatar Toggle Logic
+   ------------------------- */
+profileDisplayArea.onclick = (e) => {
+    e.stopPropagation(); 
+    
+    if (currentUser) {
+        profileDisplayArea.classList.toggle('open');
+        openLoginBtn.innerText = translate('edit_profile');
+    } else {
+        openLoginModalHandler();
+    }
+}
+
+document.addEventListener('click', (e) => {
+    if (profileDisplayArea.classList.contains('open') && !profileDisplayArea.contains(e.target)) {
+        profileDisplayArea.classList.remove('open');
+    }
+});
+
+/* -------------------------
+   Render profile & history based on currentUser
+   ------------------------- */
+function updateUIAfterLogin(){
+  
+  if(currentUser){
+    const roleText = currentUser.role === 'customer' ? translate('customer_role_short') : translate('provider_role_short');
+    
+    userNameText.innerHTML = `${currentUser.name} <br> <small style="opacity:0.7;">(${roleText})</small>`;
+    userNameText.style.color = 'white';
+    openLoginBtn.innerText = translate('edit_profile');
+    
+    let detailsHTML = `
+        <div style="padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 8px;">
+            <div style="font-size: 1rem; color: var(--accent); line-height: 1.2;"><strong>${currentUser.name}</strong></div>
+            <div style="font-size: 0.8rem; color: #fff; opacity: 0.8; margin-top: 2px;">
+                ${roleText} | ${currentUser.mobile}
+            </div>
+            </div>
+    `;
+
+    if(currentUser.role === 'provider'){
+      const w = workers.find(x=>x.mobile === currentUser.mobile);
+      if(w){
+          detailsHTML += `
+              <div style="font-size: 0.85rem; line-height: 1.4; margin-top: 8px; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 8px;">
+                  <p style="margin: 0 0 4px 0;"><strong>${translate('service')}:</strong> ${w.service}</p>
+                  <p style="margin: 0 0 4px 0;"><strong>${translate('hourly_rate')}:</strong> ₹${w.rate}/hr</p>
+                  <p style="margin: 0 0 0 0;"><strong>${translate('provider_desc')}:</strong> ${w.description.substring(0, 80)}...</p>
+              </div>
+          `;
+      }
+    }
+    userDisplay.innerHTML = detailsHTML;
+
+  } else {
+    userNameText.innerHTML = translate('login_text');
+    userNameText.style.color = 'var(--accent)';
+    userDisplay.innerHTML = `<small>${translate('not_logged_in')}</small>`;
+    openLoginBtn.innerText = translate('login_signup');
+  }
+  
+  profileDisplayArea.classList.remove('open');
+  renderHistoryForUser();
+}
+
+/* -------------------------
+   Render bookings relevant to user + all bookings
+   ------------------------- */
+function renderHistoryForUser(){
+  historyList.innerHTML = '';
+  if(!currentUser){ historyList.innerHTML = `<div class="small" style="padding:8px">${translate('login_to_see_bookings')}</div>`; return; }
+  
+  let list = [];
+  if(currentUser.role === 'customer'){
+    list = bookings.filter(b => b.customerMobile === currentUser.mobile).slice().reverse();
+  } 
+  else if(currentUser.role === 'provider'){
+    list = bookings.filter(b => b.worker.toLowerCase() === currentUser.name.toLowerCase()).slice().reverse();
+  }
+  
+  if(list.length === 0){ historyList.innerHTML = `<div class="small" style="padding:8px">${translate('no_bookings_for_you')}</div>`; return; }
+  
+  list.forEach(b=>{
+    const div = document.createElement('div');
+    div.className = 'history-item';
+    
+    let actionButtons = '';
+    const PENDING_KEY = translations.en.status_pending; 
+    
+    if(currentUser.role==='provider' && b.status===PENDING_KEY) {
+        actionButtons = `<div style="margin-top:8px">
+          <button class="btn-small" onclick="decideBooking(${b.id}, true)">${translate('accept_btn')}</button> 
+          <button class="btn-small" onclick="decideBooking(${b.id}, false)">${translate('decline_btn')}</button>
+        </div>`;
+    }
+
+    const customerDisplay = currentUser.role === 'provider' 
+        ? `${translate('role_customer')}: ${b.customer} (${b.customerMobile})` 
+        : `${translate('worker')}: ${b.worker}`;
+    
+    const addressDisplay = currentUser.role === 'provider' 
+        ? `<div class="small">${translate('address')}: ${b.customerAddress || 'N/A'}</div>`
+        : '';
+
+
+    const statusBadge = (statusKey) => {
+        let key = 'status_pending';
+        if (statusKey === translations.en.status_accepted) key = 'status_accepted';
+        else if (statusKey === translations.en.status_declined) key = 'status_declined';
+
+        return `<div class="badge ${key.replace('status_', '')}">${translate(key)}</div>`;
+    };
+
+    div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <strong>${b.service} (${b.rate}₹/hr)</strong>
+        <div class="small">${customerDisplay}</div>
+        ${addressDisplay}
+        <div class="small">${b.date} | ${b.time}</div>
+      </div>
+      <div style="text-align:right">
+        ${statusBadge(b.status)}
+        ${actionButtons}
+      </div>
+    </div>`;
+    historyList.appendChild(div);
+  });
+}
+
+function renderAllBookings(){
+  allBookings.innerHTML = '';
+  if(bookings.length === 0){ allBookings.innerHTML = `<div class="small" style="padding:8px">${translate('no_bookings_yet_system')}</div>`; return; }
+  
+  bookings.slice().reverse().forEach(b=>{
+    const d = document.createElement('div');
+    d.className = 'history-item';
+    d.style.display = 'flex';
+    d.style.justifyContent = 'space-between';
+
+    const statusBadge = (statusKey) => {
+        let key = 'status_pending';
+        if (statusKey === translations.en.status_accepted) key = 'status_accepted';
+        else if (statusKey === translations.en.status_declined) key = 'status_declined';
+
+        return `<div class="badge ${key.replace('status_', '')}">${translate(key)}</div>`;
+    };
+
+    d.innerHTML = `<div>
+      <strong>${b.service}</strong>
+      <div class="small">${translate('worker')}: ${b.worker} — ${translate('role_customer')}: ${b.customer} (${b.customerMobile})</div>
+      <div class="small">${translate('address')}: ${b.customerAddress || 'N/A'} | ${b.date} | ${b.time}</div>
+    </div>
+    <div style="text-align:right">${statusBadge(b.status)}</div>`;
+    allBookings.appendChild(d);
+  });
+}
+
+/* -------------------------
+   Provider decide on a booking
+   ------------------------- */
+function decideBooking(id, accept){
+  const idx = bookings.findIndex(b=>b.id === id);
+  if(idx === -1) return;
+  
+  const newStatus = accept ? translations.en.status_accepted : translations.en.status_declined;
+  const originalBooking = bookings[idx];
+  originalBooking.status = newStatus;
+  
+  saveBookings();
+  
+  const custMobileKey = originalBooking.customerMobile; 
+  if (custMobileKey && custMobileKey !== 'N/A') { 
+      notifications[custMobileKey] = notifications[custMobileKey] || [];
+      
+      const notificationText = accept 
+        ? translate('n_booking_accepted', originalBooking.service, originalBooking.worker)
+        : translate('n_booking_declined', originalBooking.service, originalBooking.worker);
+        
+      notifications[custMobileKey].push({ 
+        text: notificationText, 
+        time: new Date().toLocaleString() 
+      });
+      
+      saveNotifs();
+  }
+  
+  renderHistoryForUser();
+  renderAllBookings();
+  showNotify(translate('n_decision_saved'), accept);
+}
+
+/* -------------------------
+   Notification polling
+   ------------------------- */
+setInterval(()=>{
+  if(!currentUser || currentUser.role !== 'customer') return;
+  
+  const custMobileKey = currentUser.mobile;
+  const msgs = notifications[custMobileKey];
+  
+  if(Array.isArray(msgs) && msgs.length){
+    const m = msgs.shift(); 
+    saveNotifs();
+    
+    const isAccepted = m.text.includes(translations.en.status_accepted) || m.text.includes('✅');
+    showNotify(m.text, isAccepted); 
+    renderHistoryForUser();
+  }
+},1500);
+
+/* -------------------------
+   Map Integration Logic
+   ------------------------- */
+let mapInstance = null;
+let mapMarkers = [];
+let isMapView = false;
+
+const DEFAULT_LAT = 28.6139;
+const DEFAULT_LNG = 77.2088;
+
+function toggleMapView() {
+    const btn = document.getElementById('toggleViewBtn');
+    const grid = document.getElementById('servicesGrid');
+    const mapDiv = document.getElementById('map-section');
+    const allBookingsPanel = document.getElementById('allBookings').closest('.panel');
+
+    isMapView = !isMapView;
+
+    if (isMapView) {
+        grid.style.display = 'none';
+        allBookingsPanel.style.marginTop = '0';
+        mapDiv.style.display = 'block';
+        btn.innerHTML = `<i class="fas fa-list"></i> Show List`;
+        btn.classList.add('active');
+        
+        if (!mapInstance) {
+            initLeafletMap();
+        } else {
+            setTimeout(() => { mapInstance.invalidateSize(); }, 200);
+            refreshMapMarkers();
+        }
+    } else {
+        grid.style.display = 'grid';
+        allBookingsPanel.style.marginTop = '12px';
+        mapDiv.style.display = 'none';
+        btn.innerHTML = `<i class="fas fa-map-marked-alt"></i> Show Map`;
+        btn.classList.remove('active');
+    }
+}
+
+function initLeafletMap() {
+    const mapDiv = document.getElementById('map-section');
+    mapDiv.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#aaa;">Loading map...</div>';
+    
+    setTimeout(() => {
+        mapDiv.innerHTML = '';
+        mapInstance = L.map('map-section').setView([DEFAULT_LAT, DEFAULT_LNG], 11);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(mapInstance);
+
+        refreshMapMarkers();
+    }, 500);
+}
+
+function refreshMapMarkers() {
+    if (!mapInstance) return;
+
+    mapMarkers.forEach(m => mapInstance.removeLayer(m));
+    mapMarkers = [];
+
+    workers.forEach(worker => {
+        const lat = worker.lat || (DEFAULT_LAT + (Math.random() - 0.5) * 0.1);
+        const lng = worker.lng || (DEFAULT_LNG + (Math.random() - 0.5) * 0.1);
+
+        worker.lat = lat; 
+        worker.lng = lng;
+
+        const marker = L.marker([lat, lng])
+            .addTo(mapInstance)
+            .bindPopup(`
+                <div style="text-align:center; min-width:150px;">
+                    <div style="font-size:1.5rem; margin-bottom:5px;">${getServiceIcon(worker.service)}</div>
+                    <strong>${worker.name}</strong>
+                    <div style="color:#aaa; font-size:0.9rem;">${worker.service}</div>
+                    <div style="margin:5px 0; font-weight:bold; color:var(--accent);">₹${worker.rate}/hr</div>
+                    <button class="btn-small" onclick="openBookingModalFromMap('${worker.name}')" style="width:100%; justify-content:center;">
+                        Book Now
+                    </button>
+                </div>
+            `, {
+                className: 'map-popup'
+            });
+
+        mapMarkers.push(marker);
+    });
+}
+
+window.openBookingModalFromMap = (name) => {
+    openBookingModal(name);
+};
+
+/* -------------------------
+   Init + helpers on load
+   ------------------------- */
+function initApp(){
+  populateLanguageSwitcher();
+  updateUILanguage();
+  
+  if (workers.length === 0) {
+    const sampleWorkers = [
+      { name: "Raj Kumar", mobile: "9876543210", password: "pass123", service: "Cleaning", rate: 200, address: "Delhi", description: "Professional cleaning service with 5 years experience." },
+      { name: "Amit Singh", mobile: "9876543211", password: "pass123", service: "Electrician", rate: 300, address: "Noida", description: "Certified electrician, 24/7 emergency service." },
+      { name: "Suresh G", mobile: "9876543212", password: "pass123", service: "Car Washing", rate: 150, address: "Gurgaon", description: "Car washing at your doorstep with premium products." },
+      { name: "Deepak Sharma", mobile: "9876543213", password: "pass123", service: "Plumber", rate: 250, address: "Faridabad", description: "All plumbing services, leak fixing, installation." },
+      { name: "Mohan Das", mobile: "9876543214", password: "pass123", service: "Room Shifting", rate: 500, address: "Delhi", description: "Safe and secure room shifting with packing." }
+    ];
+    workers = sampleWorkers;
+    saveWorkers();
+  }
+}
+initApp();
+
+document.querySelectorAll('.modal').forEach(m=>{
+  m.addEventListener('click', e=>{
+    if(e.target === m){ m.classList.remove('show'); }
+  });
+});
+</script>
+</body>
+</html>
