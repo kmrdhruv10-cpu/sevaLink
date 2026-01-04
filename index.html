@@ -1497,6 +1497,26 @@ document.querySelectorAll('.modal').forEach(m=>{
     if(e.target === m){ m.classList.remove('show'); }
   });
 });
-</script>
+</script>// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyC5xOVTRgtPp0fgeZ3J22Za3Wv_l1-XHwc",
+  authDomain: "sevalink-365cd.firebaseapp.com",
+  projectId: "sevalink-365cd",
+  storageBucket: "sevalink-365cd.firebasestorage.app",
+  messagingSenderId: "176188185592",
+  appId: "1:176188185592:web:e3ab3af265cae8fb61d40d",
+  measurementId: "G-SRRP99KC8H"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 </body>
 </html>
