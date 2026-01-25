@@ -1497,7 +1497,10 @@ document.querySelectorAll('.modal').forEach(m=>{
     if(e.target === m){ m.classList.remove('show'); }
   });
 });
-</script>// Import the functions you need from the SDKs you need
+</script>
+
+  <script>
+    // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 // TODO: Add SDKs for Firebase products that you want to use
@@ -1518,5 +1521,6 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
+  </script>
 </body>
 </html>
